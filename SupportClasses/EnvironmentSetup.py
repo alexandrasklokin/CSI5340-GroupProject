@@ -1,4 +1,3 @@
-import syft
 import torch
 import torchvision
 
@@ -26,7 +25,7 @@ def download_mnist(train_batch_size=25, test_batch_size=100, num_workers=2):
 
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=25,
                                                shuffle=True, num_workers=2)
-    validation_loader = torch.utils.data.DataLoader(valset, batch_size=25,
+    validation_loader = torch.utils.data.DataLoader(valset, batch_size=100,
                                                     shuffle=True, num_workers=2)
 
     testset = torchvision.datasets.MNIST(root='./data', train=False,

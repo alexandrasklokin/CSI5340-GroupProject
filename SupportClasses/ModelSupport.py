@@ -1,17 +1,16 @@
 import torch
-import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class ConvNet(nn.Module):
     """
-    Here we create the CNN model. It will consist of two convolutional layers, with max pooling in between,
+    Here we create the ms model. It will consist of two convolutional layers, with max pooling in between,
     and one fully connected linear layer.
     """
     def __init__(self, numberOfClasses):
         """
-        General class for creating a CNN. Includes the numberOfClasses parameter.
+        General class for creating a ms. Includes the numberOfClasses parameter.
         :param numberOfClasses: Indicates the number of classes in the classification task.
         """
         super(ConvNet, self).__init__()
@@ -46,7 +45,7 @@ def train(model, data_loader, optimizer, criterion, device):
 
     for inputs, labels in data_loader:
         # send the inputs and labels to the same device
-        inputs, labels = inputs.to(device), labels.to(device, dtype=torch.float)
+        inputs, labels = inputs.to(device), labels.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -59,10 +58,9 @@ def train(model, data_loader, optimizer, criterion, device):
 
         # Accuracy on the training set
         _, predictions = torch.max(outputs.data, 1)
-        acc = (predictions==labels).sum().item()
         epoch_loss += loss.item()
-        epoch_acc += acc.item()
-    return epoch_loss / len(data_loader), epoch_acc / len(data_loader)
+        epoch_acc += (predictions==labels).sum().item()
+    return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
 
 
 def test(model, data_loader, criterion, device):
@@ -80,7 +78,7 @@ def test(model, data_loader, criterion, device):
     with torch.no_grad():
         for inputs, labels in data_loader:
             # send the inputs and labels to the same device
-            inputs, labels = inputs.to(device), labels.to(device, dtype=torch.float)
+            inputs, labels = inputs.to(device), labels.to(device)
 
             # Get the outputs and the loss
             outputs = model(inputs)
@@ -88,7 +86,6 @@ def test(model, data_loader, criterion, device):
 
             # Accuracy on the testing set
             _, predictions = torch.max(outputs.data, 1)
-            acc = (predictions == labels).sum().item()
             epoch_loss += loss.item()
-            epoch_acc += acc.item()
-    return epoch_loss / len(data_loader), epoch_acc / len(data_loader)
+            epoch_acc += (predictions == labels).sum().item()
+    return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
