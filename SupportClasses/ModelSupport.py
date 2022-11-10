@@ -29,6 +29,13 @@ class ConvNet(nn.Module):
         return x
 
 
+def epoch_time(start_time, end_time):
+    elapsed_time = end_time - start_time
+    elapsed_mins = int(elapsed_time / 60)
+    elapsed_secs = int(elapsed_time - (elapsed_mins * 60))
+    return elapsed_mins, elapsed_secs
+
+
 def train(model, data_loader, optimizer, criterion, device):
     """
     The following method is used to train a model on a dataset.
@@ -89,3 +96,7 @@ def test(model, data_loader, criterion, device):
             epoch_loss += loss.item()
             epoch_acc += (predictions == labels).sum().item()
     return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
+
+
+def federated_averaging(models):
+    return None
