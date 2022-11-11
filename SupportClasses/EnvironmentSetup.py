@@ -15,11 +15,8 @@ def data_distribution(number_of_nodes):
     :param number_of_nodes: The number of devices in the federated model.
     :return: A list of tuples containing all unique permutations of the size number_of_nodes.
     """
-    return_list = []
-    for elem in permutations(DATA_DISTRIBUTION[number_of_nodes], number_of_nodes):
-        if elem not in return_list:
-            return_list.append(elem)
-    return return_list[:number_of_nodes]
+    # Convert this to a set to give only the unique values. Then convert back to a list so we can slice it.
+    return list(set(list(permutations(DATA_DISTRIBUTION[number_of_nodes], number_of_nodes))))[:number_of_nodes]
 
 
 def download_mnist(train_batch_size=25, test_batch_size=100, num_workers=2):
