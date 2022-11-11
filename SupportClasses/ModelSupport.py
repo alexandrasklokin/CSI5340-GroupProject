@@ -1,6 +1,21 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Dict
+from collections import OrderedDict
+
+
+class FederatedModel:
+    """
+    This class contains all information relevant to a Federated Model in one place.
+    """
+    def __init__(self, train_loader, validation_loader, model):
+        self.train_loader = train_loader
+        self.validation_loader = validation_loader
+        self.model = model
+
+    def get_len_train_data(self):
+        return len(self.train_loader.dataset)
 
 
 class ConvNet(nn.Module):
@@ -98,5 +113,22 @@ def test(model, data_loader, criterion, device):
     return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
 
 
-def federated_averaging(models):
-    return None
+def federated_averaging(fed_models: Dict[str, FederatedModel], total_data_size):
+    """
+    This method takes in a dictionary of federated models and averages their weights to perform FED_AVG.
+    :param fed_models: This a federated model containing the data and model.
+    :param total_data_size: This is the total amount of data over all systems.
+    :return: The averaged weights across all models.
+    """
+    average_weights = OrderedDict()
+    for i, fed_model in enumerate(fed_models.values()):
+        weight_coefficient = round(fed_model.get_len_train_data() / total_data_size, 3)
+        local_weights = fed_model.model.state_dict()
+
+        # Iterate over the weights in the local networks and add them to a new ordered dictionary
+        for key in local_weights.keys():
+            if i == 0:
+                average_weights[key] = weight_coefficient * local_weights[key]
+            else:
+                average_weights[key] += weight_coefficient * local_weights[key]
+    return average_weights

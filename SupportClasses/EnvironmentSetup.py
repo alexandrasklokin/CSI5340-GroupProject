@@ -11,7 +11,7 @@ DATA_DISTRIBUTION = [None, None, (0.25, 0.75), (0.25, 0.25, 0.50), (0.15, 0.15, 
 
 def data_distribution(number_of_nodes):
     """
-    This method returns a list of tuples containing the data distribution per-client.
+    This method returns a list of tuples of length number_of_nodes containing the data distribution per-client.
     :param number_of_nodes: The number of devices in the federated model.
     :return: A list of tuples containing all unique permutations of the size number_of_nodes.
     """
@@ -19,7 +19,7 @@ def data_distribution(number_of_nodes):
     for elem in permutations(DATA_DISTRIBUTION[number_of_nodes], number_of_nodes):
         if elem not in return_list:
             return_list.append(elem)
-    return return_list
+    return return_list[:number_of_nodes]
 
 
 def download_mnist(train_batch_size=25, test_batch_size=100, num_workers=2):
