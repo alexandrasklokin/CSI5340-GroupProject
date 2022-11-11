@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 from typing import Dict
 from collections import OrderedDict
 
@@ -111,6 +112,22 @@ def test(model, data_loader, criterion, device):
             epoch_loss += loss.item()
             epoch_acc += (predictions == labels).sum().item()
     return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
+
+
+def federated_training(epoch, global_model, key, fed_model, device, criterion):
+    # Update each model with the global model, before training again.
+    fed_model.model.load_state_dict(global_model.state_dict())
+    fed_model.model.to(device=device)
+
+    # Begin training
+    optimizer = optim.Adam(fed_model.model.parameters())
+    train_loss, train_acc = train(fed_model.model, fed_model.train_loader, optimizer, criterion, device=device)
+    valid_loss, valid_acc = test(fed_model.model, fed_model.validation_loader, criterion, device=device)
+    print(f'Epoch: {epoch+1:02} | Model name: {key}')
+    print(f'\tTrain Loss: {train_loss:.5f} | Train Acc: {train_acc*100:.2f}%')
+    print(f'\t Val. Loss: {valid_loss:.5f} |  Val. Acc: {valid_acc*100:.2f}%')
+
+    # return train_loss, valid_loss
 
 
 def federated_averaging(fed_models: Dict[str, FederatedModel], total_data_size):

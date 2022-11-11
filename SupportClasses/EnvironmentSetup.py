@@ -37,14 +37,14 @@ def download_mnist(train_batch_size=25, test_batch_size=100, num_workers=2):
                                                      [round(len(dataset)*0.85), round(len(dataset)*0.15)])
 
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=25,
-                                               shuffle=True, num_workers=2)
+                                               shuffle=True, num_workers=2, multiprocessing_context='spawn')
     validation_loader = torch.utils.data.DataLoader(valset, batch_size=100,
-                                                    shuffle=True, num_workers=2)
+                                                    shuffle=True, num_workers=2, multiprocessing_context='spawn')
 
     testset = torchvision.datasets.MNIST(root='./data', train=False,
                                          download=True, transform=transform)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=100,
-                                              shuffle=True, num_workers=2)
+                                              shuffle=True, num_workers=2, multiprocessing_context='spawn')
 
     return train_loader, validation_loader, test_loader
 
