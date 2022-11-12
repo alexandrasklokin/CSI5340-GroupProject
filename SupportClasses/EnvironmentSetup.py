@@ -35,6 +35,7 @@ def filter_data_by_classes(num_of_classes, trainset, testset):
     classes = list(trainset.class_to_idx.values())[:num_of_classes]
     print(f"The classes in the training and testing set are {classes}")
 
+
     # Reduce the dataset to only contain the classes we want.
     train_idx = [target in classes for target in trainset.targets]
     test_idx = [target in classes for target in testset.targets]
@@ -121,18 +122,25 @@ def unbalance_training_set(train_set, classes, data_distribution):
     :return:
     """
     unbalanced_dataset = []
+    data_loader = torch.utils.data.DataLoader(train_set, batch_size=len(train_set), shuffle=True, num_workers=2)
 
     # Let's separate the training set based on class
     for dist, target in zip(data_distribution, classes):
-        # Get only the data that belongs to the class we are looking at.
-        idx = (train_set.dataset.targets == target)
-        temp = TensorDataset(train_set.dataset.data[idx], train_set.dataset.targets[idx])
 
-        # Now take a subset of this set
-        first, second = round(len(temp) * dist), round(len(temp) * (1-dist))
-        rounding_error = (first+second)-len(temp)
-        class_subset, _ = torch.utils.data.random_split(temp,
-                                      [first, second-rounding_error])
-        unbalanced_dataset.append(class_subset)
+        for inputs, labels in data_loader:
+            # Get only the data that belongs to the class we are looking at.
+            idx = (labels == target)
+            data, labels = inputs[idx], labels[idx]
+
+            temp = TensorDataset(data, labels)
+
+            # Now take a subset of this set
+            first, second = round(len(temp) * dist), round(len(temp) * (1 - dist))
+            rounding_error = (first+second)-len(temp)
+            class_subset, _ = torch.utils.data.random_split(temp,
+                                          [first, second-rounding_error])
+
+            unbalanced_dataset.append(class_subset)
+            break
 
     return ConcatDataset(unbalanced_dataset)

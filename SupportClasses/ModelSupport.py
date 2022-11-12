@@ -65,7 +65,18 @@ def train(model, data_loader, optimizer, criterion, device):
     epoch_acc = 0
     model.train()
 
+    # These are for debugging
+    # count = 0
+    # acc_1 = 0
+    # acc_2 = 0
+    # acc_3 = 0
+
     for inputs, labels in data_loader:
+        # Used for debugging
+        # count += 25
+        # acc_1 += list(labels).count(0)
+        # acc_2 += list(labels).count(1)
+        # acc_3 += list(labels).count(2)
         # send the inputs and labels to the same device
         inputs, labels = inputs.to(device), labels.to(device)
 
@@ -82,6 +93,9 @@ def train(model, data_loader, optimizer, criterion, device):
         _, predictions = torch.max(outputs.data, 1)
         epoch_loss += loss.item()
         epoch_acc += (predictions==labels).sum().item()
+
+    # Used for debugging
+    # print(count, acc_1, acc_2, acc_3)
     return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
 
 
