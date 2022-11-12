@@ -113,7 +113,7 @@ def test(model, data_loader, criterion, device):
     return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
 
 
-def federated_averaging(fed_models: Dict[str, FederatedModel], total_data_size):
+def federated_averaging(fed_models: Dict[str, FederatedModel]):
     """
     This method takes in a dictionary of federated models and averages their weights to perform FED_AVG.
     :param fed_models: This a federated model containing the data and model.
@@ -121,6 +121,8 @@ def federated_averaging(fed_models: Dict[str, FederatedModel], total_data_size):
     :return: The averaged weights across all models.
     """
     average_weights = OrderedDict()
+    total_data_size = sum([fed_model.get_len_train_data() for fed_model in fed_models.values()])
+
     for i, fed_model in enumerate(fed_models.values()):
         weight_coefficient = round(fed_model.get_len_train_data() / total_data_size, 3)
         local_weights = fed_model.model.state_dict()
