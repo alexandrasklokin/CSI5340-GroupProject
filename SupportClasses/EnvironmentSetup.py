@@ -33,14 +33,21 @@ def filter_data_by_classes(num_of_classes, trainset, testset):
     # classes = random.sample(list(trainset.class_to_idx.values()), k=num_of_classes)
     # Get the first four classes
     classes = list(trainset.class_to_idx.values())[:num_of_classes]
-    print(f"The classes in the training and testing set are {classes}")
-
+    print(f"The classes in the training and testing set are {trainset.classes[:num_of_classes]}")
 
     # Reduce the dataset to only contain the classes we want.
     train_idx = [target in classes for target in trainset.targets]
     test_idx = [target in classes for target in testset.targets]
-    trainset.targets, testset.targets = trainset.targets[train_idx], testset.targets[test_idx]
-    trainset.data, testset.data = trainset.data[train_idx], testset.data[test_idx]
+
+    # CIFAR10 and MNIST datasets differ here
+    if not isinstance(trainset.targets, list):
+        trainset.targets, testset.targets = trainset.targets[train_idx], testset.targets[test_idx]
+        trainset.data, testset.data = trainset.data[train_idx], testset.data[test_idx]
+    else:
+        trainset.targets, testset.targets = ([target for target, val in zip(trainset.targets, train_idx) if val == True],
+                                             [target for target, val in zip(testset.targets, test_idx) if val == True])
+        trainset.data, testset.data = ([data for data, val in zip(trainset.data, train_idx) if val == True],
+                                       [data for data, val in zip(testset.data, test_idx) if val == True])
 
     # Split into testing and validation set
     trainset, valset = torch.utils.data.random_split(trainset,
@@ -70,9 +77,9 @@ def download_mnist(num_of_classes, train_batch_size=25, test_batch_size=100, num
     return filter_data_by_classes(num_of_classes, trainset, testset)
 
 
-def download_imagenet(num_of_classes, train_batch_size=25, test_batch_size=100, num_workers=2):
+def download_fashion_mnist(num_of_classes, train_batch_size=25, test_batch_size=100, num_workers=2):
     """
-    Downloads the ImageNet dataset.
+    Downloads the MNIST dataset.
     :param num_of_classes: The number of classes to select from the dataset.
     :param train_batch_size: Specifies the training batch size.
     :param test_batch_size: Specifies the test batch size.
@@ -83,14 +90,41 @@ def download_imagenet(num_of_classes, train_batch_size=25, test_batch_size=100, 
         [torchvision.transforms.ToTensor(),
          torchvision.transforms.Normalize((0.1307,), (0.3081,))])
 
-    dataset = torchvision.datasets.ImageNet(root='./data', train=True,
-                                         download=True, transform=transform)
-    trainset, valset = torch.utils.data.random_split(dataset,
-                                                     [round(len(dataset) * 0.85), round(len(dataset) * 0.15)])
-    testset = torchvision.datasets.ImageNet(root='./data', train=False,
-                                            download=True, transform=transform)
+    trainset = torchvision.datasets.FashionMNIST(root='./data', train=True,
+                                                 download=True, transform=transform)
+    testset = torchvision.datasets.FashionMNIST(root='./data', train=False,
+                                                download=True, transform=transform)
 
     return filter_data_by_classes(num_of_classes, trainset, testset)
+
+
+def download_cifar10(num_of_classes, train_batch_size=25, test_batch_size=100, num_workers=2):
+    """
+    Downloads the ImageNet dataset.
+    :param num_of_classes: The number of classes to select from the dataset.
+    :param train_batch_size: Specifies the training batch size.
+    :param test_batch_size: Specifies the test batch size.
+    :param num_workers: Specifies the number of workers to load data. Modify this value based on your system resources.
+    :return: Returns the value of filter_data_by_classes.
+    """
+    transform = torchvision.transforms.Compose(
+        [torchvision.transforms.ToTensor(),
+         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                            download=True, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+                                           download=True, transform=transform)
+
+    return filter_data_by_classes(num_of_classes, trainset, testset)
+
+
+def download_dataset(num_of_classes, dataset):
+    if dataset == 'cifar10':
+        return download_cifar10(num_of_classes)
+    elif dataset == 'MNIST':
+        return download_mnist(num_of_classes)
+    return download_fashion_mnist(num_of_classes)
 
 
 def create_single_loader(dataset):
@@ -115,8 +149,7 @@ def create_data_loaders(training_sets, validation_set, test_set):
     return training_loaders, validation_loader, test_loader
 
 
-# TODO: Implement this function
-def unbalance_training_set(train_set, classes, data_distribution):
+def unbalance_training_set(train_set, classes, data_distribution, subset_max_size):
     """
     This method will be used to unbalance a dataset.
     :return:
@@ -132,7 +165,9 @@ def unbalance_training_set(train_set, classes, data_distribution):
             idx = (labels == target)
             data, labels = inputs[idx], labels[idx]
 
+            # Reduce the size of the training set to 100 images per class
             temp = TensorDataset(data, labels)
+            temp, _ = torch.utils.data.random_split(temp, [subset_max_size, len(temp) - subset_max_size])
 
             # Now take a subset of this set
             first, second = round(len(temp) * dist), round(len(temp) * (1 - dist))
