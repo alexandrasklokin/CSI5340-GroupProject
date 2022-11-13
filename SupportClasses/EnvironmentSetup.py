@@ -4,6 +4,7 @@ import random
 from itertools import permutations
 import matplotlib.pyplot as plt
 import numpy as np
+from torchvision import datasets
 from torch.utils.data import TensorDataset, ConcatDataset, DataLoader
 
 """
@@ -118,7 +119,7 @@ def create_single_loader(dataset):
 
 
 # Setup function to create dataloaders for image datasets
-def generate_dataloader(data, name, transform):
+def generate_dataloader(data, name, transform, use_cuda, batch_size):
     if data is None:
         return None
 
