@@ -2,6 +2,8 @@ import torch
 import torchvision
 import random
 from itertools import permutations
+import matplotlib.pyplot as plt
+import numpy as np
 from torch.utils.data import TensorDataset, ConcatDataset, DataLoader
 
 """
@@ -33,8 +35,7 @@ def filter_data_by_classes(num_of_classes, trainset, testset):
     # classes = random.sample(list(trainset.class_to_idx.values()), k=num_of_classes)
     # Get the first four classes
     classes = list(trainset.class_to_idx.values())[:num_of_classes]
-    print(f"The classes in the training and testing set are {classes}")
-
+    print(f"The classes in the training and testing set are {list(trainset.classes[:num_of_classes])}")
 
     # Reduce the dataset to only contain the classes we want.
     train_idx = [target in classes for target in trainset.targets]
@@ -70,7 +71,28 @@ def download_mnist(num_of_classes, train_batch_size=25, test_batch_size=100, num
     return filter_data_by_classes(num_of_classes, trainset, testset)
 
 
-def download_imagenet(num_of_classes, train_batch_size=25, test_batch_size=100, num_workers=2):
+def download_fashion_mnist(num_of_classes, train_batch_size=25, test_batch_size=100, num_workers=2):
+    """
+    Downloads the MNIST dataset.
+    :param num_of_classes: The number of classes to select from the dataset.
+    :param train_batch_size: Specifies the training batch size.
+    :param test_batch_size: Specifies the test batch size.
+    :param num_workers: Specifies the number of workers to load data. Modify this value based on your system resources.
+    :return: Returns the value of filter_data_by_classes.
+    """
+    transform = torchvision.transforms.Compose(
+        [torchvision.transforms.ToTensor(),
+         torchvision.transforms.Normalize((0.1307,), (0.3081,))])
+
+    trainset = torchvision.datasets.FashionMNIST(root='./data', train=True,
+                                                 download=True, transform=transform)
+    testset = torchvision.datasets.FashionMNIST(root='./data', train=False,
+                                                download=True, transform=transform)
+
+    return filter_data_by_classes(num_of_classes, trainset, testset)
+
+
+def download_cifar10(num_of_classes, train_batch_size=25, test_batch_size=100, num_workers=2):
     """
     Downloads the ImageNet dataset.
     :param num_of_classes: The number of classes to select from the dataset.
@@ -83,18 +105,43 @@ def download_imagenet(num_of_classes, train_batch_size=25, test_batch_size=100, 
         [torchvision.transforms.ToTensor(),
          torchvision.transforms.Normalize((0.1307,), (0.3081,))])
 
-    dataset = torchvision.datasets.ImageNet(root='./data', train=True,
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                          download=True, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                          download=True, transform=transform)
-    trainset, valset = torch.utils.data.random_split(dataset,
-                                                     [round(len(dataset) * 0.85), round(len(dataset) * 0.15)])
-    testset = torchvision.datasets.ImageNet(root='./data', train=False,
-                                            download=True, transform=transform)
 
     return filter_data_by_classes(num_of_classes, trainset, testset)
 
 
 def create_single_loader(dataset):
     return torch.utils.data.DataLoader(dataset, batch_size=25, shuffle=True, num_workers=2)
+
+
+# Setup function to create dataloaders for image datasets
+def generate_dataloader(data, name, transform):
+    if data is None:
+        return None
+
+    # Read image files to pytorch dataset using ImageFolder, a generic data
+    # loader where images are in format root/label/filename
+    # See https://pytorch.org/vision/stable/datasets.html
+    if transform is None:
+        dataset = datasets.ImageFolder(data, transform=T.ToTensor())
+    else:
+        dataset = datasets.ImageFolder(data, transform=transform)
+
+    # Set options for device
+    if use_cuda:
+        kwargs = {"pin_memory": True, "num_workers": 1}
+    else:
+        kwargs = {}
+
+    # Wrap image dataset (defined above) in dataloader
+    dataloader = DataLoader(dataset, batch_size=batch_size,
+                            shuffle=(name == "train"),
+                            **kwargs)
+
+    return dataloader
 
 
 def create_data_loaders(training_sets, validation_set, test_set):
@@ -115,7 +162,6 @@ def create_data_loaders(training_sets, validation_set, test_set):
     return training_loaders, validation_loader, test_loader
 
 
-# TODO: Implement this function
 def unbalance_training_set(train_set, classes, data_distribution):
     """
     This method will be used to unbalance a dataset.
@@ -132,7 +178,9 @@ def unbalance_training_set(train_set, classes, data_distribution):
             idx = (labels == target)
             data, labels = inputs[idx], labels[idx]
 
+            # Reduce the size of the training set to 300 images per class
             temp = TensorDataset(data, labels)
+            temp, _ = torch.utils.data.random_split(temp, [100, len(temp) - 100])
 
             # Now take a subset of this set
             first, second = round(len(temp) * dist), round(len(temp) * (1 - dist))
@@ -144,3 +192,25 @@ def unbalance_training_set(train_set, classes, data_distribution):
             break
 
     return ConcatDataset(unbalanced_dataset)
+
+
+# Functions to display single or a batch of sample images
+def imshow(img):
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
+def show_batch(dataloader):
+    dataiter = iter(dataloader)
+    images, labels = dataiter.next()
+    imshow(torchvision.utils.make_grid(images))  # Using Torchvision.utils make_grid function
+
+
+def show_image(dataloader):
+    dataiter = iter(dataloader)
+    images, labels = dataiter.next()
+    random_num = random.randint(0, len(images) - 1)
+    imshow(images[random_num])
+    label = labels[random_num]
+    print(f'Label: {label}, Shape: {images[random_num].shape}')
