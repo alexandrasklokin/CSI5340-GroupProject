@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import random
 from typing import Dict
 from collections import OrderedDict
 
@@ -147,7 +148,7 @@ def test(model, data_loader, criterion, device):
     return epoch_loss / len(data_loader.dataset), epoch_acc / len(data_loader.dataset)
 
 
-def federated_averaging(fed_models: Dict[str, FederatedModel]):
+def federated_averaging(fed_models: Dict[str, FederatedModel], mu, sigma):
     """
     This method takes in a dictionary of federated models and averages their weights to perform FED_AVG.
     :param fed_models: This a federated model containing the data and model.
@@ -164,7 +165,7 @@ def federated_averaging(fed_models: Dict[str, FederatedModel]):
         # Iterate over the weights in the local networks and add them to a new ordered dictionary
         for key in local_weights.keys():
             if i == 0:
-                average_weights[key] = weight_coefficient * local_weights[key]
+                average_weights[key] = weight_coefficient * local_weights[key] + random.gauss(mu, sigma)
             else:
-                average_weights[key] += weight_coefficient * local_weights[key]
+                average_weights[key] += weight_coefficient * local_weights[key] + random.gauss(mu, sigma)
     return average_weights

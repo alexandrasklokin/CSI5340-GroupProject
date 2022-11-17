@@ -1,24 +1,29 @@
 import torch
 import torchvision
-import random
 from itertools import permutations
-from torch.utils.data import TensorDataset, ConcatDataset, DataLoader
+from torch.utils.data import TensorDataset
+from enum import Enum
 
 """
 The following methods are to be used to download and distribute the dataset among the various nodes.
 """
 
-DATA_DISTRIBUTION = [None, None, (0.25, 0.75), (0.25, 0.25, 0.50), (0.15, 0.15, 0.15, 0.55)]
+
+class Dataset(Enum):
+    CIFAR_10 = 1
+    MNIST = 2
+    FASHION_MNIST = 3
 
 
-def data_distribution(number_of_nodes):
+def data_distribution(number_of_nodes, data_distribution):
     """
     This method returns a list of tuples of length number_of_nodes containing the data distribution per-client.
     :param number_of_nodes: The number of devices in the federated model.
+    :param data_distribution: This is the distribution of data per class.
     :return: A list of tuples containing all unique permutations of the size number_of_nodes.
     """
     # Convert this to a set to give only the unique values. Then convert back to a list so we can slice it.
-    return list(set(list(permutations(DATA_DISTRIBUTION[number_of_nodes], number_of_nodes))))[:number_of_nodes]
+    return list(set(list(permutations(data_distribution[number_of_nodes], number_of_nodes))))[:number_of_nodes]
 
 
 def filter_data_by_classes(num_of_classes, trainset, testset):
@@ -120,9 +125,9 @@ def download_cifar10(num_of_classes, train_batch_size=25, test_batch_size=100, n
 
 
 def download_dataset(num_of_classes, dataset):
-    if dataset == 'cifar10':
+    if dataset == Dataset.CIFAR_10:
         return download_cifar10(num_of_classes)
-    elif dataset == 'MNIST':
+    elif dataset == Dataset.MNIST:
         return download_mnist(num_of_classes)
     return download_fashion_mnist(num_of_classes)
 
@@ -149,7 +154,7 @@ def create_data_loaders(training_sets, validation_set, test_set):
     return training_loaders, validation_loader, test_loader
 
 
-def unbalance_training_set(train_set, classes, data_distribution, subset_max_size):
+def unbalance_training_set(train_set, classes, data_distribution):
     """
     This method will be used to unbalance a dataset.
     :return:
@@ -165,17 +170,11 @@ def unbalance_training_set(train_set, classes, data_distribution, subset_max_siz
             idx = (labels == target)
             data, labels = inputs[idx], labels[idx]
 
-            # Reduce the size of the training set to 100 images per class
+            # Take a subset of the data according to the current class size.
             temp = TensorDataset(data, labels)
-            temp, _ = torch.utils.data.random_split(temp, [subset_max_size, len(temp) - subset_max_size])
-
-            # Now take a subset of this set
-            first, second = round(len(temp) * dist), round(len(temp) * (1 - dist))
-            rounding_error = (first+second)-len(temp)
-            class_subset, _ = torch.utils.data.random_split(temp,
-                                          [first, second-rounding_error])
+            class_subset, _ = torch.utils.data.random_split(temp, [dist, len(temp) - dist])
 
             unbalanced_dataset.append(class_subset)
             break
 
-    return ConcatDataset(unbalanced_dataset)
+    return unbalanced_dataset
